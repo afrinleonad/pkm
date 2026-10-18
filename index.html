@@ -550,6 +550,7 @@ body.in .stage{opacity:1;transform:none}
     if(gate.classList.contains('open'))return;
     gate.classList.add('open');
     playMusic();
+    setTimeout(startAutoScroll,5000);
     document.body.classList.add('in');
     document.body.classList.remove('locked');
     setTimeout(function(){house.classList.add('go');capwrap.classList.add('showcap1')},1400);
@@ -570,6 +571,28 @@ body.in .stage{opacity:1;transform:none}
   });
   // resume when the guest comes back to the page
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&bgm.paused&&document.body.classList.contains('in'))bgm.play().catch(function(){})});
+
+  /* ---- gentle auto-scroll: starts 5s after the doors open, stops for good on the first touch ---- */
+  var autoOn=false,autoStopped=false,autoPos=0,autoLast=0,AUTO_SPEED=42; // px per second
+  function stopAutoScroll(){autoStopped=true;autoOn=false}
+  function startAutoScroll(){
+    if(autoStopped)return;
+    autoOn=true;autoPos=window.scrollY;autoLast=performance.now();
+    requestAnimationFrame(function step(now){
+      if(!autoOn)return;
+      var dt=Math.min(.1,(now-autoLast)/1000);autoLast=now;
+      var max=document.documentElement.scrollHeight-window.innerHeight;
+      autoPos=Math.min(max,autoPos+AUTO_SPEED*dt);
+      window.scrollTo(0,autoPos);
+      if(autoPos>=max){autoOn=false;return}
+      requestAnimationFrame(step);
+    });
+  }
+  ['pointerdown','touchstart','wheel','keydown'].forEach(function(ev){
+    window.addEventListener(ev,function(){if(document.body.classList.contains('in'))stopAutoScroll()},{passive:true,capture:true});
+  });
+  if('scrollRestoration' in history)history.scrollRestoration='manual';
+  window.scrollTo(0,0);
 
   gate.addEventListener('click',open);
   gate.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
